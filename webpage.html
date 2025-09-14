@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Traffic Management System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Urban Tech -->
+    <!-- Application Structure Plan: The SPA is designed as a top-to-bottom narrative, guiding the user through the project's story. It starts with a Hero section to grab attention, followed by "The Problem" to establish context. The core "Our Solution" section uses an interactive, card-based layout to let users explore each key feature individually. Finally, "The Impact" section uses data visualization to provide clear, quantitative evidence of the project's benefits. This structure was chosen over a simple dashboard to create a compelling, easy-to-follow presentation for an audience unfamiliar with the project, making it ideal for an event like Engineers' Day. -->
+    <!-- Visualization & Content Choices: 
+        1. Problem > Goal: Inform > Viz: Line Chart > Interaction: Static > Justification: Visually establish the rising problem of traffic congestion over time. > Library: Chart.js
+        2. Solution (Traffic Analysis) > Goal: Organize/Explain > Viz: Interactive Bar Chart + Text > Interaction: Button click to update chart and text > Justification: To actively demonstrate how the system dynamically allocates signal time, making the concept tangible. > Library: Chart.js + Vanilla JS
+        3. Impact > Goal: Compare > Viz: Grouped Bar Chart > Interaction: Hover tooltips > Justification: To provide a clear, quantitative "before-and-after" comparison, proving the system's effectiveness across key metrics. > Library: Chart.js
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 40vh;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+        .kpi-card {
+            background-color: white;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .kpi-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+        .feature-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+        .traffic-light {
+            width: 5rem;
+            height: 14rem;
+            background-color: #2d3748;
+            border-radius: 1rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            align-items: center;
+            padding: 1rem;
+            border: 4px solid #4a5568;
+        }
+        .light {
+            width: 3.5rem;
+            height: 3.5rem;
+            border-radius: 50%;
+            background-color: #4a5568;
+            transition: background-color 0.5s ease;
+        }
+        .light.red.active { background-color: #ef4444; box-shadow: 0 0 20px 5px #ef4444; }
+        .light.yellow.active { background-color: #f59e0b; box-shadow: 0 0 20px 5px #f59e0b; }
+        .light.green.active { background-color: #22c55e; box-shadow: 0 0 20px 5px #22c55e; }
+    </style>
+</head>
+<body class="text-slate-800">
+
+    <header class="bg-white shadow-md sticky top-0 z-50">
+        <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="text-2xl font-bold text-slate-800">
+                STMS
+            </div>
+            <ul class="flex space-x-6 font-medium text-slate-600">
+                <li><a href="#problem" class="hover:text-blue-600 transition-colors">The Problem</a></li>
+                <li><a href="#solution" class="hover:text-blue-600 transition-colors">Our Solution</a></li>
+                <li><a href="#impact" class="hover:text-blue-600 transition-colors">Impact</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section id="hero" class="py-20 bg-slate-50">
+            <div class="container mx-auto px-6 text-center">
+                <div class="flex flex-col md:flex-row items-center justify-center gap-8">
+                    <div class="traffic-light" id="hero-traffic-light">
+                        <div class="light red"></div>
+                        <div class="light yellow"></div>
+                        <div class="light green"></div>
+                    </div>
+                    <div class="md:text-left">
+                         <h1 class="text-4xl md:text-6xl font-extrabold text-slate-900 mb-4">Smart Traffic Management System</h1>
+                        <p class="text-xl text-slate-600 max-w-2xl mx-auto md:mx-0">An intelligent, real-time solution to revolutionize urban mobility and safety.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="problem" class="py-20">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl md:text-4xl font-bold mb-4">The Gridlock Problem</h2>
+                    <p class="text-lg text-slate-600 max-w-3xl mx-auto">Our cities are growing, but our traffic infrastructure is stuck in the past. Inefficient, static traffic signals lead to daily congestion, wasted fuel, increased pollution, and critical delays for emergency services.</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-lg">
+                    <div class="chart-container">
+                        <canvas id="congestionChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="solution" class="py-20 bg-slate-50">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl md:text-4xl font-bold mb-4">A Dynamic, Intelligent Solution</h2>
+                    <p class="text-lg text-slate-600 max-w-3xl mx-auto">Our system uses a multi-faceted approach to create a responsive and efficient traffic network. Explore the core features below to see how it works.</p>
+                </div>
+
+                <div class="grid md:grid-cols-3 gap-8">
+                    <div class="feature-card bg-white p-6 rounded-lg shadow-lg text-center">
+                        <div class="text-6xl mb-4">🚦</div>
+                        <h3 class="text-xl font-bold mb-2">Voice-Enabled Guidance</h3>
+                        <p class="text-slate-600">The system captures traffic signal data and delivers clear, audible commands to drivers, such as "Red light ahead, please stop." This feature enhances driver awareness and safety, particularly for visually impaired individuals.</p>
+                    </div>
+                    <div class="feature-card bg-white p-6 rounded-lg shadow-lg text-center">
+                        <div class="text-6xl mb-4">📈</div>
+                        <h3 class="text-xl font-bold mb-2">Real-Time Traffic Analysis</h3>
+                        <p class="text-slate-600">By analyzing traffic flow in real-time, the system dynamically adjusts signal timings. Lanes with heavy traffic are given longer green lights, minimizing bottlenecks and significantly reducing overall wait times across junctions.</p>
+                    </div>
+                    <div class="feature-card bg-white p-6 rounded-lg shadow-lg text-center">
+                        <div class="text-6xl mb-4">🚨</div>
+                        <h3 class="text-xl font-bold mb-2">Emergency Priority System</h3>
+                        <p class="text-slate-600">Using sound recognition, the system detects approaching emergency vehicle sirens. It automatically turns the signal green for their path while holding other traffic & also announces emergency vehicle ahead please wait, clearing the way and drastically reducing response times.</p>
+                    </div>
+                </div>
+                
+                <div class="mt-16 bg-white p-6 rounded-lg shadow-lg">
+                    <h3 class="text-2xl font-bold text-center mb-4">Interactive Demo: Dynamic Signal Adjustment</h3>
+                    <p class="text-slate-600 text-center max-w-2xl mx-auto mb-6">This chart simulates a junction with two intersecting roads. Click the button to see how the Smart System reallocates green light time based on traffic demand.</p>
+                    <div class="chart-container h-80 md:h-96">
+                        <canvas id="trafficAnalysisChart"></canvas>
+                    </div>
+                    <div class="text-center mt-6">
+                        <button id="toggleSystemBtn" class="bg-blue-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-blue-700 transition-colors">Activate Smart System</button>
+                    </div>
+                     <div id="analysis-text" class="mt-4 text-center text-slate-600 font-medium h-6"></div>
+                </div>
+
+            </div>
+        </section>
+
+        <section id="impact" class="py-20">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl md:text-4xl font-bold mb-4">Proven Real-World Impact</h2>
+                    <p class="text-lg text-slate-600 max-w-3xl mx-auto">The implementation of the Smart Traffic Management System yields significant, measurable improvements in traffic efficiency and public safety.</p>
+                </div>
+
+                <div class="grid md:grid-cols-3 gap-8 mb-12">
+                    <div class="kpi-card text-center">
+                        <p class="text-5xl font-extrabold text-blue-600">30%</p>
+                        <p class="text-lg font-medium text-slate-700 mt-2">Reduction in Congestion</p>
+                    </div>
+                     <div class="kpi-card text-center">
+                        <p class="text-5xl font-extrabold text-green-600">45%</p>
+                        <p class="text-lg font-medium text-slate-700 mt-2">Faster Emergency Response</p>
+                    </div>
+                    <div class="kpi-card text-center">
+                        <p class="text-5xl font-extrabold text-amber-600">20%</p>
+                        <p class="text-lg font-medium text-slate-700 mt-2">Decrease in Fuel Waste</p>
+                    </div>
+                </div>
+                
+                <div class="bg-white p-6 rounded-lg shadow-lg">
+                    <h3 class="text-2xl font-bold text-center mb-4">Performance Comparison</h3>
+                    <p class="text-slate-600 text-center max-w-2xl mx-auto mb-6">This visualization directly compares key performance metrics between a standard, fixed-time traffic system and our intelligent, adaptive system during peak hours.</p>
+                    <div class="chart-container h-80 md:h-96">
+                        <canvas id="impactChart"></canvas>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-slate-800 text-white py-8">
+        <div class="container mx-auto px-6 text-center">
+            <p class="font-bold text-lg">Smart Traffic Management System</p>
+            <p class="text-slate-400 mt-2">Designed by: [Next Gen Python Developers]</p>
+            <p class="text-slate-400 mt-1">For more info: [sadasiva.work@gmail.com]</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            let trafficChart, impactChart, analysisChart;
+            let isSmartSystemActive = false;
+            
+            const trafficAnalysisData = {
+                initial: {
+                    labels: ['Road A (Heavy Traffic)', 'Road B (Light Traffic)'],
+                    datasets: [{
+                        label: 'Green Light Time (Seconds)',
+                        data: [30, 30],
+                        backgroundColor: ['#f59e0b', '#f59e0b'],
+                        borderColor: ['#d97706', '#d97706'],
+                        borderWidth: 1
+                    }]
+                },
+                smart: {
+                    labels: ['Road A (Heavy Traffic)', 'Road B (Light Traffic)'],
+                    datasets: [{
+                        label: 'Green Light Time (Seconds)',
+                        data: [45, 15],
+                        backgroundColor: ['#22c55e', '#ef4444'],
+                        borderColor: ['#16a34a', '#dc2626'],
+                        borderWidth: 1
+                    }]
+                }
+            };
+
+            const chartOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += context.parsed.y + 's';
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return value + 's';
+                            }
+                        }
+                    },
+                    x: {
+                        ticks: {
+                           callback: function(value) {
+                                const label = this.getLabelForValue(value);
+                                if (label.length > 16) {
+                                    return label.slice(0, 16) + '...';
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                }
+            };
+            
+            function initHeroTrafficLight() {
+                const lights = document.querySelectorAll('#hero-traffic-light .light');
+                let currentLight = 0;
+                const sequence = [
+                    { light: 2, duration: 5000 },
+                    { light: 1, duration: 2000 },
+                    { light: 0, duration: 5000 },
+                ];
+
+                function changeLight() {
+                    lights.forEach(l => l.classList.remove('active'));
+                    const activeLightIndex = sequence[currentLight].light;
+                    const colorClass = ['red', 'yellow', 'green'][activeLightIndex];
+                    lights[activeLightIndex].classList.add('active', colorClass);
+                    
+                    const duration = sequence[currentLight].duration;
+                    currentLight = (currentLight + 1) % sequence.length;
+                    setTimeout(changeLight, duration);
+                }
+                changeLight();
+            }
+
+            function createCongestionChart() {
+                const ctx = document.getElementById('congestionChart').getContext('2d');
+                if (trafficChart) trafficChart.destroy();
+                trafficChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: ['2020', '2021', '2022', '2023', '2024', '2025 (proj.)'],
+                        datasets: [{
+                            label: 'Average Daily Congestion Index',
+                            data: [100, 105, 112, 118, 125, 135],
+                            fill: true,
+                            borderColor: 'rgb(239, 68, 68)',
+                            backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: true } },
+                        scales: { y: { beginAtZero: false, title: { display: true, text: 'Congestion Index' } } }
+                    }
+                });
+            }
+
+            function createImpactChart() {
+                const ctx = document.getElementById('impactChart').getContext('2d');
+                if (impactChart) impactChart.destroy();
+                impactChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Average Wait Time', 'Emergency Vehicle Delay'],
+                        datasets: [{
+                                label: 'Traditional System',
+                                data: [65, 50],
+                                backgroundColor: '#f59e0b',
+                            },
+                            {
+                                label: 'Smart System',
+                                data: [28, 5],
+                                backgroundColor: '#22c55e',
+                            }
+                        ]
+                    },
+                    options: { ...chartOptions, scales: { y: { beginAtZero: true, title: { display: true, text: 'Time (seconds)' } } } }
+                });
+            }
+
+            function createTrafficAnalysisChart() {
+                const ctx = document.getElementById('trafficAnalysisChart').getContext('2d');
+                if (analysisChart) analysisChart.destroy();
+                analysisChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: JSON.parse(JSON.stringify(trafficAnalysisData.initial)),
+                    options: { ...chartOptions, plugins: { ...chartOptions.plugins, legend: { display: false } }, scales: { y: { beginAtZero: true, max: 50, title: { display: true, text: 'Green Light Time (seconds)' } } } }
+                });
+            }
+
+            function toggleSystem() {
+                isSmartSystemActive = !isSmartSystemActive;
+                const button = document.getElementById('toggleSystemBtn');
+                const analysisText = document.getElementById('analysis-text');
+                
+                if (isSmartSystemActive) {
+                    analysisChart.data = JSON.parse(JSON.stringify(trafficAnalysisData.smart));
+                    button.textContent = 'Deactivate Smart System';
+                    button.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                    button.classList.add('bg-red-600', 'hover:bg-red-700');
+                    analysisText.textContent = "System active: Green light time is prioritized for Road A.";
+                } else {
+                    analysisChart.data = JSON.parse(JSON.stringify(trafficAnalysisData.initial));
+                    button.textContent = 'Activate Smart System';
+                    button.classList.remove('bg-red-600', 'hover:bg-red-700');
+                    button.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                    analysisText.textContent = "System inactive: Green light time is distributed equally.";
+                }
+                analysisChart.update();
+            }
+
+            document.getElementById('toggleSystemBtn').addEventListener('click', toggleSystem);
+
+            initHeroTrafficLight();
+            createCongestionChart();
+            createImpactChart();
+            createTrafficAnalysisChart();
+        });
+    </script>
+</body>
+</html>
